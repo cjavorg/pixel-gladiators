@@ -13,6 +13,11 @@ pygame.display.set_caption("Pixel Gladiators")
 
 # Colors
 WHITE = (255, 255, 255)
+try:
+    BACKGROUND_IMAGE = pygame.image.load(os.path.join(os.path.dirname(__file__), "pg-background.jpg"))
+except pygame.error:
+    raise FileNotFoundError("Background image 'pg-background.jpg' not found. Please ensure the file is in the same directory as the script.")
+BACKGROUND_IMAGE = pygame.transform.scale(BACKGROUND_IMAGE, (SCREEN_WIDTH, SCREEN_HEIGHT))
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
@@ -131,6 +136,7 @@ while running:
 
     # Drawing
     screen.fill(WHITE)
+    screen.blit(BACKGROUND_IMAGE, (0, 0))
     all_sprites.draw(screen)
 
     # Display health bars
