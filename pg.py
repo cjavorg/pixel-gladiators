@@ -128,8 +128,10 @@ class Game:
         self.start_button = Button(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2, 200, 50, "Start Game", (100, 200, 100))
         # Game over button
         self.menu_button = Button(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 + 100, 200, 50, "Back to Menu", (100, 200, 100))
-        # Prep screen button
+        # Prep screen buttons
         self.play_button = Button(SCREEN_WIDTH - 220, SCREEN_HEIGHT - 80, 200, 50, "Play!", (100, 200, 100))
+        self.controls_button = Button(SCREEN_WIDTH - 220, 20, 200, 50, "Controls", (100, 100, 200))
+        self.show_controls = False
         self.winner = None
         self.setup_game_objects()
 
@@ -168,34 +170,62 @@ class Game:
                 return False
             if self.play_button.handle_event(event):
                 self.state = "PLAYING"
+            if self.controls_button.handle_event(event):
+                self.show_controls = not self.show_controls
 
         screen.blit(BACKGROUND_IMAGE, (0, 0))
 
-        # Draw instructions
-        instructions = [
-            "Player 1 Controls:",
-            "WASD to move",
-            "SPACE to attack",
-            "",
-            "Player 2 Controls:",
-            "Arrow Keys to move",
-            "ENTER to attack"
-        ]
+        if self.show_controls:
+            # Draw controls menu on the right side
+            menu_width = 300
+            menu_height = 400
+            menu_x = SCREEN_WIDTH - menu_width - 20
+            menu_y = (SCREEN_HEIGHT - menu_height) // 2
 
-        # Draw title
-        prep_title = TITLE_FONT.render("Get Ready!", True, WHITE)
-        prep_title_rect = prep_title.get_rect(center=(SCREEN_WIDTH//2, 80))
-        screen.blit(prep_title, prep_title_rect)
+            # Draw semi-transparent menu background
+            menu_surface = pygame.Surface((menu_width, menu_height))
+            menu_surface.fill((50, 50, 50))
+            menu_surface.set_alpha(200)
+            screen.blit(menu_surface, (menu_x, menu_y))
 
-        # Draw instructions
-        for i, text in enumerate(instructions):
-            instruction_text = FONT.render(text, True, WHITE)
-            screen.blit(instruction_text, (50, 150 + i * 40))
+            # Draw menu border
+            pygame.draw.rect(screen, WHITE, (menu_x, menu_y, menu_width, menu_height), 2)
 
-        # Draw player previews
-        pygame.draw.rect(screen, RED, (SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2, PLAYER_WIDTH, PLAYER_HEIGHT))
-        pygame.draw.rect(screen, BLUE, (SCREEN_WIDTH//2 + 150, SCREEN_HEIGHT//2, PLAYER_WIDTH, PLAYER_HEIGHT))
+            # Draw "Controls" header
+            controls_text = FONT.render("Controls", True, WHITE)
+            controls_rect = controls_text.get_rect(center=(menu_x + menu_width // 2, menu_y + 30))
+            screen.blit(controls_text, controls_rect)
 
+            # Draw instructions in the menu
+            instructions = [
+                ("Player 1:", ""),
+                ("WASD", "Movement"),
+                ("SPACE", "Attack"),
+                ("", ""),
+                ("Player 2:", ""),
+                ("Arrow Keys", "Movement"),
+                ("ENTER", "Attack")
+            ]
+
+            y_offset = menu_y + 80
+            for control, action in instructions:
+                if control:  # If it's not just a spacer
+                    if control in ["Player 1:", "Player 2:"]:
+                        # Draw player headers in a different style
+                        text = FONT.render(control, True, (200, 200, 100))
+                        screen.blit(text, (menu_x + 20, y_offset))
+                    else:
+                        # Draw control key
+                        control_text = FONT.render(control, True, WHITE)
+                        screen.blit(control_text, (menu_x + 20, y_offset))
+
+                        # Draw action description
+                        action_text = FONT.render(action, True, WHITE)
+                        screen.blit(action_text, (menu_x + menu_width - 120, y_offset))
+
+                y_offset += 40
+
+        self.controls_button.draw(screen)
         self.play_button.draw(screen)
         return True
 
