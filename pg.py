@@ -124,8 +124,12 @@ class Button:
 class Game:
     def __init__(self):
         self.state = "MENU"
+        # Main menu buttons
         self.start_button = Button(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2, 200, 50, "Start Game", (100, 200, 100))
+        # Game over button
         self.menu_button = Button(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 + 100, 200, 50, "Back to Menu", (100, 200, 100))
+        # Prep screen button
+        self.play_button = Button(SCREEN_WIDTH - 220, SCREEN_HEIGHT - 80, 200, 50, "Play!", (100, 200, 100))
         self.winner = None
         self.setup_game_objects()
 
@@ -146,7 +150,7 @@ class Game:
             if event.type == pygame.QUIT:
                 return False
             if self.start_button.handle_event(event):
-                self.state = "PLAYING"
+                self.state = "PREP"  # Changed from "PLAYING" to "PREP"
 
         screen.blit(BACKGROUND_IMAGE, (0, 0))
 
@@ -156,6 +160,43 @@ class Game:
         screen.blit(title_text, title_rect)
 
         self.start_button.draw(screen)
+        return True
+
+    def run_prep_screen(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if self.play_button.handle_event(event):
+                self.state = "PLAYING"
+
+        screen.blit(BACKGROUND_IMAGE, (0, 0))
+
+        # Draw instructions
+        instructions = [
+            "Player 1 Controls:",
+            "WASD to move",
+            "SPACE to attack",
+            "",
+            "Player 2 Controls:",
+            "Arrow Keys to move",
+            "ENTER to attack"
+        ]
+
+        # Draw title
+        prep_title = TITLE_FONT.render("Get Ready!", True, WHITE)
+        prep_title_rect = prep_title.get_rect(center=(SCREEN_WIDTH//2, 80))
+        screen.blit(prep_title, prep_title_rect)
+
+        # Draw instructions
+        for i, text in enumerate(instructions):
+            instruction_text = FONT.render(text, True, WHITE)
+            screen.blit(instruction_text, (50, 150 + i * 40))
+
+        # Draw player previews
+        pygame.draw.rect(screen, RED, (SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2, PLAYER_WIDTH, PLAYER_HEIGHT))
+        pygame.draw.rect(screen, BLUE, (SCREEN_WIDTH//2 + 150, SCREEN_HEIGHT//2, PLAYER_WIDTH, PLAYER_HEIGHT))
+
+        self.play_button.draw(screen)
         return True
 
     def run_game_over(self):
@@ -242,6 +283,8 @@ def main():
     while running:
         if game.state == "MENU":
             running = game.run_menu()
+        elif game.state == "PREP":
+            running = game.run_prep_screen()
         elif game.state == "PLAYING":
             running = game.run_game()
         elif game.state == "GAME_OVER":
