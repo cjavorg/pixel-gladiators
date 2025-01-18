@@ -36,6 +36,8 @@ FPS = 60
 PLAYER_WIDTH = 50
 PLAYER_HEIGHT = 50
 PLAYER_SPEED = 5
+GRAVITY = 0.8
+JUMP_SPEED = -15
 
 # Sword settings
 SWORD_WIDTH = 10
@@ -51,16 +53,30 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=(x, y))
         self.speed = PLAYER_SPEED
         self.health = 100
+        self.velocity_y = 0
+        self.jumping = False
 
     def update(self, keys, up, down, left, right):
-        if keys[up]:
-            self.rect.y -= self.speed
-        if keys[down]:
-            self.rect.y += self.speed
-        if keys[left]:
+        # Horizontal movement
+        if keys[left] and self.rect.left > 0:
             self.rect.x -= self.speed
-        if keys[right]:
+        if keys[right] and self.rect.right < SCREEN_WIDTH:
             self.rect.x += self.speed
+
+        # Jumping and gravity
+        if keys[up] and not self.jumping:
+            self.velocity_y = JUMP_SPEED
+            self.jumping = True
+
+        # Apply gravity
+        self.velocity_y += GRAVITY
+        self.rect.y += self.velocity_y
+
+        # Check floor collision
+        if self.rect.bottom > SCREEN_HEIGHT:
+            self.rect.bottom = SCREEN_HEIGHT
+            self.velocity_y = 0
+            self.jumping = False
 
 # Sword class
 class Sword(pygame.sprite.Sprite):
@@ -154,4 +170,3 @@ while running:
 
 pygame.quit()
 sys.exit()
-
