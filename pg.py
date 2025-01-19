@@ -17,12 +17,21 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 
-# Load background
+# Load background images
 try:
-    BACKGROUND_IMAGE = pygame.image.load(os.path.join(os.path.dirname(__file__), "pg-background.jpg"))
-    BACKGROUND_IMAGE = pygame.transform.scale(BACKGROUND_IMAGE, (SCREEN_WIDTH, SCREEN_HEIGHT))
-except pygame.error:
-    raise FileNotFoundError("Background image 'pg-background.jpg' not found. Please ensure the file is in the same directory as the script.")
+    GAME_BACKGROUND = pygame.image.load(os.path.join(os.path.dirname(__file__), "pg-background.jpg"))
+    GAME_BACKGROUND = pygame.transform.scale(GAME_BACKGROUND, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    LOBBY_BACKGROUND = pygame.image.load(os.path.join(os.path.dirname(__file__), "menu-page-bg.jpg"))
+    LOBBY_BACKGROUND = pygame.transform.scale(LOBBY_BACKGROUND, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    MENU_BACKGROUND = pygame.image.load(os.path.join(os.path.dirname(__file__), "lobby.jpg"))
+    MENU_BACKGROUND = pygame.transform.scale(MENU_BACKGROUND, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    MENU_OVERLAY = pygame.image.load(os.path.join(os.path.dirname(__file__), "menu-bg.png"))
+    MENU_OVERLAY = pygame.transform.scale(MENU_OVERLAY, (SCREEN_WIDTH/1.5, SCREEN_HEIGHT))
+except pygame.error as e:
+    raise FileNotFoundError(f"Background image not found. Please ensure all image files are in the same directory as the script. Error: {e}")
 
 # Font settings
 FONT_PATH = os.path.join(os.path.dirname(__file__), "Minercraftory.ttf")
@@ -152,9 +161,11 @@ class Game:
             if event.type == pygame.QUIT:
                 return False
             if self.start_button.handle_event(event):
-                self.state = "PREP"  # Changed from "PLAYING" to "PREP"
+                self.state = "PREP"
 
-        screen.blit(BACKGROUND_IMAGE, (0, 0))
+        # Draw menu background with overlay
+        screen.blit(MENU_BACKGROUND, (0, 0))
+
 
         # Draw title
         title_text = TITLE_FONT.render("Pixel Gladiators", True, WHITE)
@@ -173,11 +184,13 @@ class Game:
             if self.controls_button.handle_event(event):
                 self.show_controls = not self.show_controls
 
-        screen.blit(BACKGROUND_IMAGE, (0, 0))
+        # Draw lobby background
+        screen.blit(LOBBY_BACKGROUND, (0, 0))
+        screen.blit(MENU_OVERLAY, (0, 0))
 
         if self.show_controls:
-            # Draw controls menu on the right side
-            menu_width = 300
+            # Increase menu width to accommodate longer text
+            menu_width = 350  # Increased from 300
             menu_height = 400
             menu_x = SCREEN_WIDTH - menu_width - 20
             menu_y = (SCREEN_HEIGHT - menu_height) // 2
@@ -196,13 +209,13 @@ class Game:
             controls_rect = controls_text.get_rect(center=(menu_x + menu_width // 2, menu_y + 30))
             screen.blit(controls_text, controls_rect)
 
-            # Draw instructions in the menu
+            # Draw instructions in the menu with better spacing
             instructions = [
-                ("Player 1:", ""),
+                ("Player 1", ""),
                 ("WASD", "Movement"),
                 ("SPACE", "Attack"),
                 ("", ""),
-                ("Player 2:", ""),
+                ("Player 2", ""),
                 ("Arrow Keys", "Movement"),
                 ("ENTER", "Attack")
             ]
@@ -215,15 +228,17 @@ class Game:
                         text = FONT.render(control, True, (200, 200, 100))
                         screen.blit(text, (menu_x + 20, y_offset))
                     else:
-                        # Draw control key
+                        # Draw control key with adjusted spacing
                         control_text = FONT.render(control, True, WHITE)
-                        screen.blit(control_text, (menu_x + 20, y_offset))
+                        screen.blit(control_text, (menu_x + 30, y_offset))
 
-                        # Draw action description
+                        # Draw action description with more space
                         action_text = FONT.render(action, True, WHITE)
-                        screen.blit(action_text, (menu_x + menu_width - 120, y_offset))
+                        # Adjust position to prevent overlap
+                        action_x = menu_x + menu_width - 160  # Moved further left and adjusted for wider menu
+                        screen.blit(action_text, (action_x, y_offset))
 
-                y_offset += 40
+                y_offset += 50  # Increased vertical spacing further
 
         self.controls_button.draw(screen)
         self.play_button.draw(screen)
@@ -237,7 +252,7 @@ class Game:
                 self.state = "MENU"
                 self.setup_game_objects()  # Reset game for next round
 
-        screen.blit(BACKGROUND_IMAGE, (0, 0))
+        screen.blit(LOBBY_BACKGROUND, (0, 0))  # Using lobby background for game over screen
 
         # Draw winner text
         winner_text = TITLE_FONT.render(f"Player {self.winner} Wins!", True, WHITE)
@@ -286,7 +301,7 @@ class Game:
             self.state = "GAME_OVER"
 
         # Drawing
-        screen.blit(BACKGROUND_IMAGE, (0, 0))
+        screen.blit(GAME_BACKGROUND, (0, 0))
         self.all_sprites.draw(screen)
 
         # Display health bars
