@@ -39,6 +39,7 @@ if not os.path.exists(FONT_PATH):
     raise FileNotFoundError(f"Font file not found at {FONT_PATH}. Please ensure the file is in the same directory as the script.")
 FONT = pygame.font.Font(FONT_PATH, 24)
 TITLE_FONT = pygame.font.Font(FONT_PATH, 64)
+SUBTITLE_FONT = pygame.font.Font(FONT_PATH, 38)
 
 # Clock
 clock = pygame.time.Clock()
@@ -139,7 +140,8 @@ class Game:
         self.menu_button = Button(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 + 100, 200, 50, "Back to Menu", (100, 200, 100))
         # Prep screen buttons
         self.play_button = Button(SCREEN_WIDTH - 220, SCREEN_HEIGHT - 80, 200, 50, "Play!", (100, 200, 100))
-        self.controls_button = Button(SCREEN_WIDTH - 220, 20, 200, 50, "Controls", (100, 100, 200))
+        # Move controls button to the left side within the overlay
+        self.controls_button = Button(50, 150, 200, 50, "Controls", (100, 100, 200))
         self.show_controls = False
         self.winner = None
         self.setup_game_objects()
@@ -188,9 +190,15 @@ class Game:
         screen.blit(LOBBY_BACKGROUND, (0, 0))
         screen.blit(MENU_OVERLAY, (0, 0))
 
+        # Draw title in the menu overlay
+        title_text = SUBTITLE_FONT.render("Pixel Gladiators", True, WHITE)
+        # Position the title at 1/4 of screen width (center of left half) and near the top
+        title_rect = title_text.get_rect(center=(SCREEN_WIDTH//3.5, 80))
+        screen.blit(title_text, title_rect)
+
         if self.show_controls:
             # Increase menu width to accommodate longer text
-            menu_width = 350  # Increased from 300
+            menu_width = 300  # Increased from 300
             menu_height = 400
             menu_x = SCREEN_WIDTH - menu_width - 20
             menu_y = (SCREEN_HEIGHT - menu_height) // 2
@@ -206,7 +214,7 @@ class Game:
 
             # Draw "Controls" header
             controls_text = FONT.render("Controls", True, WHITE)
-            controls_rect = controls_text.get_rect(center=(menu_x + menu_width // 2, menu_y + 30))
+            controls_rect = controls_text.get_rect(center=(menu_x + menu_width // 2.5, menu_y + 30))
             screen.blit(controls_text, controls_rect)
 
             # Draw instructions in the menu with better spacing
