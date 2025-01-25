@@ -61,6 +61,11 @@ SWORD_DAMAGE = 5  # Damage inflicted by a sword hit
 # Add to the constants at the top
 FULLSCREEN = False  # Initial fullscreen state
 
+# Add to the constants section
+DEFAULT_PLAYER1_NAME = "Player 1"
+DEFAULT_PLAYER2_NAME = "Player 2"
+CUSTOMIZE_FONT = pygame.font.Font(FONT_PATH, 48)  # Smaller font for customize screen title
+
 # Player class
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, color):
@@ -159,6 +164,20 @@ class Game:
         self.controls_button = Button(50, 150, 200, 50, "Controls", (100, 100, 200))
         self.show_controls = False
         self.winner = None
+
+        # Add customization screen buttons
+        self.start_fight_button = Button(SCREEN_WIDTH - 220, SCREEN_HEIGHT - 80, 200, 50, "Start Fight!", (100, 200, 100))
+        self.player1_name_button = Button(100, 200, 200, 50, DEFAULT_PLAYER1_NAME, (200, 100, 100))
+        self.player2_name_button = Button(SCREEN_WIDTH - 300, 200, 200, 50, DEFAULT_PLAYER2_NAME, (100, 100, 200))
+
+        # Player names
+        self.player1_name = DEFAULT_PLAYER1_NAME
+        self.player2_name = DEFAULT_PLAYER2_NAME
+
+        # Text input state
+        self.active_input = None
+        self.input_text = ""
+
         self.setup_game_objects()
 
     def setup_game_objects(self):
@@ -211,6 +230,9 @@ class Game:
         self.menu_button.rect.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100)
         self.play_button.rect.bottomright = (SCREEN_WIDTH - 20, SCREEN_HEIGHT - 20)
         self.controls_button.rect.topleft = (50, 150)
+        self.start_fight_button.rect.bottomright = (SCREEN_WIDTH - 20, SCREEN_HEIGHT - 20)
+        self.player1_name_button.rect.topleft = (100, 200)
+        self.player2_name_button.rect.topleft = (SCREEN_WIDTH - 300, 200)
 
     def run_menu(self):
         for event in pygame.event.get():
@@ -238,7 +260,7 @@ class Game:
             if event.type == pygame.QUIT:
                 return False
             if self.play_button.handle_event(event):
-                self.state = "PLAYING"
+                self.state = "CUSTOMIZE"  # Changed from "PLAYING" to "CUSTOMIZE"
             if self.controls_button.handle_event(event):
                 self.show_controls = not self.show_controls
             if self.fullscreen_button.handle_event(event):
@@ -311,6 +333,125 @@ class Game:
         self.play_button.draw(screen)
         return True
 
+    def run_customize_screen(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN and self.active_input:
+                if event.key == pygame.K_RETURN:
+                    # Save the name and exit input mode
+                    if self.active_input == 1:
+                        self.player1_name = self.input_text if self.input_text else DEFAULT_PLAYER1_NAME
+                    else:
+                        self.player2_name = self.input_text if self.input_text else DEFAULT_PLAYER2_NAME
+                    self.active_input = None
+                    self.input_text = ""
+                elif event.key == pygame.K_BACKSPACE:
+                    self.input_text = self.input_text[:-1]
+                elif event.key == pygame.K_ESCAPE:  # Add escape to cancel editing
+                    self.active_input = None
+                    self.input_text = ""
+                else:
+                    # Limit name length to 12 characters
+                    if len(self.input_text) < 12:
+                        self.input_text += event.unicode
+            # Handle mouse clicks outside input boxes to deselect
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = event.pos
+                input1_rect = pygame.Rect(100, 260, 200, 40)
+                input2_rect = pygame.Rect(SCREEN_WIDTH - 300, 260, 200, 40)
+                if not input1_rect.collidepoint(mouse_pos) and not input2_rect.collidepoint(mouse_pos):
+                    if self.active_input == 1:
+                        self.player1_name = self.input_text if self.input_text else self.player1_name
+                    elif self.active_input == 2:
+                        self.player2_name = self.input_text if self.input_text else self.player2_name
+                    self.active_input = None
+                    self.input_text = ""
+
+            if self.start_fight_button.handle_event(event):
+                self.state = "PLAYING"
+            elif self.fullscreen_button.handle_event(event):
+                self.toggle_fullscreen()
+
+        # Draw background
+        screen.blit(LOBBY_BACKGROUND, (0, 0))
+
+        # Draw title with smaller font
+        title_text = CUSTOMIZE_FONT.render("Customize Characters", True, WHITE)
+        title_rect = title_text.get_rect(center=(SCREEN_WIDTH//2, 80))
+        screen.blit(title_text, title_rect)
+
+        # Draw player sections
+        self.draw_player_section(1)
+        self.draw_player_section(2)
+
+        # Draw name input boxes with text input styling
+        self.draw_name_input(1)
+        self.draw_name_input(2)
+
+        # Draw buttons
+        self.start_fight_button.draw(screen)
+        self.fullscreen_button.draw(screen)
+
+        return True
+
+    def draw_name_input(self, player_num):
+        x = 100 if player_num == 1 else SCREEN_WIDTH - 300
+        y = 260
+        width = 200
+        height = 40
+
+        # Create input box rect
+        input_rect = pygame.Rect(x, y, width, height)
+
+        # Handle mouse clicks on the input box
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_clicked = pygame.mouse.get_pressed()[0]  # Left mouse button
+        if mouse_clicked and input_rect.collidepoint(mouse_pos):
+            self.active_input = player_num
+            self.input_text = self.player1_name if player_num == 1 else self.player2_name
+
+        # Draw input box background
+        box_color = (100, 100, 100) if self.active_input == player_num else (70, 70, 70)
+        pygame.draw.rect(screen, box_color, input_rect)
+        pygame.draw.rect(screen, WHITE, input_rect, 2)  # Border
+
+        # Draw current name or active input text
+        if self.active_input == player_num:
+            text = self.input_text + "_"  # Add cursor
+        else:
+            text = self.player1_name if player_num == 1 else self.player2_name
+
+        text_surface = FONT.render(text, True, WHITE)
+        text_rect = text_surface.get_rect(center=input_rect.center)
+        screen.blit(text_surface, text_rect)
+
+        # Draw "Click to edit" hint if not active
+        if not self.active_input:
+            hint_text = BUTTON_FONT.render("Click to edit", True, (150, 150, 150))
+            hint_rect = hint_text.get_rect(center=(x + width//2, y + height + 20))
+            screen.blit(hint_text, hint_rect)
+
+    def draw_player_section(self, player_num):
+        x = 100 if player_num == 1 else SCREEN_WIDTH - 300
+        y = 150
+
+        # Draw section title
+        section_text = SUBTITLE_FONT.render(f"Player {player_num}", True, WHITE)
+        section_rect = section_text.get_rect(topleft=(x, y))
+        screen.blit(section_text, section_rect)
+
+        # Draw placeholder for future skin selection
+        skin_text = FONT.render("Skin Selection", True, WHITE)
+        screen.blit(skin_text, (x, y + 200))  # Moved down to accommodate name input
+
+        # Draw skin preview box
+        preview_rect = pygame.Rect(x, y + 250, 150, 150)  # Moved down to accommodate name input
+        pygame.draw.rect(screen, WHITE, preview_rect, 2)
+        coming_soon = FONT.render("Coming Soon!", True, WHITE)
+        coming_soon_rect = coming_soon.get_rect(center=preview_rect.center)
+        screen.blit(coming_soon, coming_soon_rect)
+
     def run_game_over(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -319,10 +460,11 @@ class Game:
                 self.state = "PREP"
                 self.setup_game_objects()  # Reset game for next round
 
-        screen.blit(LOBBY_BACKGROUND, (0, 0))  # Using lobby background for game over screen
+        screen.blit(LOBBY_BACKGROUND, (0, 0))
 
-        # Draw winner text
-        winner_text = TITLE_FONT.render(f"Player {self.winner} Wins!", True, WHITE)
+        # Draw winner text using custom name
+        winner_name = self.player1_name if self.winner == 1 else self.player2_name
+        winner_text = TITLE_FONT.render(f"{winner_name} Wins!", True, WHITE)
         winner_rect = winner_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//3))
         screen.blit(winner_text, winner_rect)
 
@@ -397,6 +539,8 @@ def main():
             running = game.run_menu()
         elif game.state == "PREP":
             running = game.run_prep_screen()
+        elif game.state == "CUSTOMIZE":
+            running = game.run_customize_screen()
         elif game.state == "PLAYING":
             running = game.run_game()
         elif game.state == "GAME_OVER":
