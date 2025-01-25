@@ -40,6 +40,7 @@ if not os.path.exists(FONT_PATH):
 FONT = pygame.font.Font(FONT_PATH, 24)
 TITLE_FONT = pygame.font.Font(FONT_PATH, 64)
 SUBTITLE_FONT = pygame.font.Font(FONT_PATH, 38)
+BUTTON_FONT = pygame.font.Font(FONT_PATH, 20)  # Smaller font for button text
 
 # Clock
 clock = pygame.time.Clock()
@@ -56,6 +57,9 @@ JUMP_SPEED = -15
 SWORD_WIDTH = 10
 SWORD_HEIGHT = 40
 SWORD_DAMAGE = 5  # Damage inflicted by a sword hit
+
+# Add to the constants at the top
+FULLSCREEN = False  # Initial fullscreen state
 
 # Player class
 class Player(pygame.sprite.Sprite):
@@ -108,18 +112,21 @@ class Sword(pygame.sprite.Sprite):
             self.rect.topleft = (-100, -100)  # Move the sword off-screen when not attacking
 
 class Button:
-    def __init__(self, x, y, width, height, text, color):
+    def __init__(self, x, y, width, height, text, color, small_text=False):
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
         self.color = color
         self.is_hovered = False
+        self.small_text = small_text
 
     def draw(self, surface):
         color = (min(self.color[0] + 30, 255),
                 min(self.color[1] + 30, 255),
                 min(self.color[2] + 30, 255)) if self.is_hovered else self.color
         pygame.draw.rect(surface, color, self.rect)
-        text_surface = FONT.render(self.text, True, BLACK)
+        # Use smaller font if small_text is True
+        font = BUTTON_FONT if self.small_text else FONT
+        text_surface = font.render(self.text, True, BLACK)
         text_rect = text_surface.get_rect(center=self.rect.center)
         surface.blit(text_surface, text_rect)
 
@@ -134,10 +141,18 @@ class Button:
 class Game:
     def __init__(self):
         self.state = "MENU"
+        # Store original screen dimensions
+        self.original_width = SCREEN_WIDTH
+        self.original_height = SCREEN_HEIGHT
+        self.is_fullscreen = FULLSCREEN
+
+        # Add fullscreen button
+        self.fullscreen_button = Button(SCREEN_WIDTH - 220, 20, 200, 50, "Fullscreen", (100, 100, 200))
+
         # Main menu buttons
         self.start_button = Button(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2, 200, 50, "Start Game", (100, 200, 100))
-        # Game over button
-        self.menu_button = Button(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 + 100, 200, 50, "Back to Menu", (100, 200, 100))
+        # Game over button - added small_text=True
+        self.menu_button = Button(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 + 100, 200, 50, "Back to Lobby", (100, 200, 100), small_text=True)
         # Prep screen buttons
         self.play_button = Button(SCREEN_WIDTH - 220, SCREEN_HEIGHT - 80, 200, 50, "Play!", (100, 200, 100))
         # Move controls button to the left side within the overlay
@@ -158,16 +173,56 @@ class Game:
         # Groups
         self.all_sprites = pygame.sprite.Group(self.player1, self.player2, self.sword1, self.sword2)
 
+    def toggle_fullscreen(self):
+        global screen, SCREEN_WIDTH, SCREEN_HEIGHT
+        self.is_fullscreen = not self.is_fullscreen
+
+        if self.is_fullscreen:
+            # Get the current display info
+            display_info = pygame.display.Info()
+            SCREEN_WIDTH = display_info.current_w
+            SCREEN_HEIGHT = display_info.current_h
+            screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
+            self.fullscreen_button.text = "Unfullscreen"  # Change button text
+        else:
+            SCREEN_WIDTH = self.original_width
+            SCREEN_HEIGHT = self.original_height
+            screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+            self.fullscreen_button.text = "Fullscreen"  # Change button text back
+
+        # Update button positions for new screen size
+        self.update_button_positions()
+
+        # Rescale background images
+        self.scale_backgrounds()
+
+    def scale_backgrounds(self):
+        global GAME_BACKGROUND, LOBBY_BACKGROUND, MENU_BACKGROUND, MENU_OVERLAY
+
+        GAME_BACKGROUND = pygame.transform.scale(GAME_BACKGROUND, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        LOBBY_BACKGROUND = pygame.transform.scale(LOBBY_BACKGROUND, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        MENU_BACKGROUND = pygame.transform.scale(MENU_BACKGROUND, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        MENU_OVERLAY = pygame.transform.scale(MENU_OVERLAY, (SCREEN_WIDTH/1.5, SCREEN_HEIGHT))
+
+    def update_button_positions(self):
+        # Update button positions based on new screen size
+        self.fullscreen_button.rect.topleft = (SCREEN_WIDTH - 220, 20)
+        self.start_button.rect.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2)
+        self.menu_button.rect.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100)
+        self.play_button.rect.bottomright = (SCREEN_WIDTH - 20, SCREEN_HEIGHT - 20)
+        self.controls_button.rect.topleft = (50, 150)
+
     def run_menu(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
             if self.start_button.handle_event(event):
                 self.state = "PREP"
+            if self.fullscreen_button.handle_event(event):
+                self.toggle_fullscreen()
 
         # Draw menu background with overlay
         screen.blit(MENU_BACKGROUND, (0, 0))
-
 
         # Draw title
         title_text = TITLE_FONT.render("Pixel Gladiators", True, WHITE)
@@ -175,6 +230,7 @@ class Game:
         screen.blit(title_text, title_rect)
 
         self.start_button.draw(screen)
+        self.fullscreen_button.draw(screen)
         return True
 
     def run_prep_screen(self):
@@ -185,6 +241,8 @@ class Game:
                 self.state = "PLAYING"
             if self.controls_button.handle_event(event):
                 self.show_controls = not self.show_controls
+            if self.fullscreen_button.handle_event(event):
+                self.toggle_fullscreen()
 
         # Draw lobby background
         screen.blit(LOBBY_BACKGROUND, (0, 0))
@@ -249,6 +307,7 @@ class Game:
                 y_offset += 50  # Increased vertical spacing further
 
         self.controls_button.draw(screen)
+        self.fullscreen_button.draw(screen)
         self.play_button.draw(screen)
         return True
 
@@ -257,7 +316,7 @@ class Game:
             if event.type == pygame.QUIT:
                 return False
             if self.menu_button.handle_event(event):
-                self.state = "MENU"
+                self.state = "PREP"
                 self.setup_game_objects()  # Reset game for next round
 
         screen.blit(LOBBY_BACKGROUND, (0, 0))  # Using lobby background for game over screen
