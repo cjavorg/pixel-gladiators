@@ -2,7 +2,7 @@ import pygame
 import sys
 import os
 
-# Initialize pygame
+# Initialize pygame testing
 pygame.init()
 
 # Screen settings
